@@ -29,6 +29,7 @@ fn run_wall_clock(n: usize, m: usize) -> (Duration, usize) {
     (end - start, sum)
 }
 
+#[allow(dead_code)]
 fn run_wall_clock_inner(n: usize, m: usize) -> (Duration, usize) {
     let v: Vec<usize> = (0..m).collect();
 
@@ -45,6 +46,7 @@ fn run_wall_clock_inner(n: usize, m: usize) -> (Duration, usize) {
 }
 
 // This is super duper slow
+#[allow(dead_code)]
 fn run_cpu_time(n: usize, m: usize) -> (Duration, usize) {
     let v: Vec<usize> = (0..m).collect();
 
@@ -77,62 +79,49 @@ fn run_precision(n: usize, m: usize) -> (Duration, usize) {
 }
 
 fn main() {
-    let n = std::env::args()
+    let samples = std::env::args()
         .nth(1)
+        .expect("provide the number of samples")
+        .parse::<usize>()
+        .expect("the number of iterations should be an integer");
+    let n = std::env::args()
+        .nth(2)
         .expect("provide the number of iterations")
         .parse::<usize>()
         .expect("the number of iterations should be an integer");
     let m = std::env::args()
-        .nth(2)
+        .nth(3)
         .expect("provide the length of the vector to sum")
         .parse::<usize>()
         .expect("the length of the vector should be an integer");
 
-    print!("Setting the baseline... ");
-    let (baseline, sum1) = run_baseline(n, m);
-    println!("{:?}", baseline);
+    let mut measures = Vec::new();
 
-    print!("Measuring wall clock... ");
-    let (wall_clock, sum2) = run_wall_clock(n, m);
-    println!("{:?}", wall_clock);
+    let mut sink = 0usize;
 
-    print!("Measuring wall clock, summing inner iteration... ");
-    let (wall_clock_inner, sum3) = run_wall_clock_inner(n, m);
-    println!("{:?}", wall_clock_inner);
+    for _ in 0..samples {
+        // print!("Setting the baseline... ");
+        let (baseline, sum1) = run_baseline(n, m);
+        // println!("{:?}", baseline);
+        measures.push(("baseline", samples, n, m, baseline / n as u32));
 
-    // print!("Measuring CPU time... ");
-    // let (cpu_time, sum4) = run_cpu_time(n, m);
-    // println!("{:?}", cpu_time);
+        // print!("Measuring wall clock... ");
+        let (wall_clock, sum2) = run_wall_clock(n, m);
+        // println!("{:?}", wall_clock);
+        measures.push(("wall_clock", samples, n, m, wall_clock / n as u32));
 
-    print!("Measuring `precision` time... ");
-    let (precision_time, sum5) = run_precision(n, m);
-    println!("{:?}", precision_time);
+        // print!("Measuring `precision` time... ");
+        let (precision_time, sum3) = run_precision(n, m);
+        // println!("{:?}", precision_time);
+        measures.push(("precision_time", samples, n, m, precision_time / n as u32));
 
-    println!("{}", sum1 + sum2 + sum3 + sum5);
+        sink += sum1 + sum2 + sum3;
+        // println!("{}", sum1 + sum2 + sum3);
+    }
+    eprintln!("sink sum {}", sink);
 
-    println!(
-        "Baseline:         {:?} ({:?}/iter) ",
-        baseline,
-        baseline / n as u32,
-    );
-    println!(
-        "Wall clock:       {:?} ({:?}/iter) ",
-        wall_clock,
-        wall_clock / n as u32,
-    );
-    println!(
-        "Wall clock inner: {:?} ({:?}/iter) ",
-        wall_clock_inner,
-        wall_clock_inner / n as u32,
-    );
-    // println!(
-    //     "CPU time:         {:?} ({:?}/iter) ",
-    //     cpu_time,
-    //     cpu_time / n as u32,
-    // );
-    println!(
-        "`precision` time: {:?} ({:?}/iter) ",
-        precision_time,
-        precision_time / n as u32,
-    );
+    // println!("method, samples, n, m, time_ns");
+    for (method, samples, n, m, time) in measures.into_iter() {
+        println!("{}, {}, {}, {}, {}", method, samples, n, m, time.as_nanos());
+    }
 }
