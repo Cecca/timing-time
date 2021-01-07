@@ -61,6 +61,7 @@ fn run_cpu_time(n: usize, m: usize) -> (Duration, usize) {
     (end - start, sum)
 }
 
+#[allow(dead_code)]
 fn run_precision(n: usize, m: usize) -> (Duration, usize) {
     let v: Vec<usize> = (0..m).collect();
 
@@ -95,33 +96,44 @@ fn main() {
         .parse::<usize>()
         .expect("the length of the vector should be an integer");
 
-    let mut measures = Vec::new();
-
     let mut sink = 0usize;
 
+    let mut baseline_times = Vec::new();
+    let mut wall_clock_times = Vec::new();
+
     for _ in 0..samples {
-        // print!("Setting the baseline... ");
         let (baseline, sum1) = run_baseline(n, m);
-        // println!("{:?}", baseline);
-        measures.push(("baseline", samples, n, m, baseline / n as u32));
+        baseline_times.push(baseline / n as u32);
 
-        // print!("Measuring wall clock... ");
         let (wall_clock, sum2) = run_wall_clock(n, m);
-        // println!("{:?}", wall_clock);
-        measures.push(("wall_clock", samples, n, m, wall_clock / n as u32));
+        wall_clock_times.push(wall_clock / n as u32);
 
-        // print!("Measuring `precision` time... ");
-        let (precision_time, sum3) = run_precision(n, m);
-        // println!("{:?}", precision_time);
-        measures.push(("precision_time", samples, n, m, precision_time / n as u32));
-
-        sink += sum1 + sum2 + sum3;
-        // println!("{}", sum1 + sum2 + sum3);
+        sink += sum1 + sum2;
     }
     eprintln!("sink sum {}", sink);
 
-    // println!("method, samples, n, m, time_ns");
-    for (method, samples, n, m, time) in measures.into_iter() {
-        println!("{}, {}, {}, {}, {}", method, samples, n, m, time.as_nanos());
-    }
+    baseline_times.sort();
+    wall_clock_times.sort();
+
+    let baseline_avg: Duration =
+        baseline_times.iter().sum::<Duration>() / baseline_times.len() as u32;
+    let baseline_median = baseline_times[baseline_times.len() / 2];
+
+    let wall_clock_avg: Duration =
+        wall_clock_times.iter().sum::<Duration>() / wall_clock_times.len() as u32;
+    let wall_clock_median = wall_clock_times[wall_clock_times.len() / 2];
+
+    println!(
+        "baseline   | avg: {:?} median: {:?}",
+        baseline_avg, baseline_median
+    );
+    println!(
+        "wall_clock | avg: {:?} median: {:?}",
+        wall_clock_avg, wall_clock_median
+    );
+    println!(
+        "overhead   | avg: {:?} median: {:?}",
+        wall_clock_avg - baseline_avg,
+        wall_clock_median - baseline_median
+    )
 }
