@@ -1,5 +1,3 @@
-use cpu_time::ProcessTime;
-use precision::Precision;
 use std::time::{Duration, Instant};
 
 fn run_baseline(n: usize, m: usize) -> (Duration, usize) {
@@ -23,56 +21,6 @@ fn run_wall_clock(n: usize, m: usize) -> (Duration, usize) {
         let s = Instant::now();
         sum += v.iter().sum::<usize>();
         let e = Instant::now();
-        let _elapsed = e - s;
-    }
-    let end = Instant::now();
-    (end - start, sum)
-}
-
-#[allow(dead_code)]
-fn run_wall_clock_inner(n: usize, m: usize) -> (Duration, usize) {
-    let v: Vec<usize> = (0..m).collect();
-
-    let mut sum: usize = 0;
-    let mut total = Duration::from_secs(0);
-    for _ in 0..n {
-        let s = Instant::now();
-        sum += v.iter().sum::<usize>();
-        let e = Instant::now();
-        let elapsed = e - s;
-        total += elapsed;
-    }
-    (total, sum)
-}
-
-// This is super duper slow
-#[allow(dead_code)]
-fn run_cpu_time(n: usize, m: usize) -> (Duration, usize) {
-    let v: Vec<usize> = (0..m).collect();
-
-    let start = Instant::now();
-    let mut sum: usize = 0;
-    for _ in 0..n {
-        let s = ProcessTime::now();
-        sum += v.iter().sum::<usize>();
-        let _elapsed = s.elapsed();
-    }
-    let end = Instant::now();
-    (end - start, sum)
-}
-
-#[allow(dead_code)]
-fn run_precision(n: usize, m: usize) -> (Duration, usize) {
-    let v: Vec<usize> = (0..m).collect();
-
-    let p = Precision::new(precision::Config::default()).unwrap();
-
-    let start = Instant::now();
-    let mut sum: usize = 0;
-    for _ in 0..n {
-        let s = p.now();
-        sum += v.iter().sum::<usize>();
-        let e = p.now();
         let _elapsed = e - s;
     }
     let end = Instant::now();
@@ -123,16 +71,18 @@ fn main() {
         wall_clock_times.iter().sum::<Duration>() / wall_clock_times.len() as u32;
     let wall_clock_median = wall_clock_times[wall_clock_times.len() / 2];
 
+    println!("| {} | {} | {} |", "     ", "average", "median");
+    println!("|:----|----:|-----:|");
     println!(
-        "baseline   | avg: {:?} median: {:?}",
+        "| baseline   | {:?} | {:?} |",
         baseline_avg, baseline_median
     );
     println!(
-        "wall_clock | avg: {:?} median: {:?}",
+        "| wall_clock | {:?} | {:?} |",
         wall_clock_avg, wall_clock_median
     );
     println!(
-        "overhead   | avg: {:?} median: {:?}",
+        "| overhead   | {:?} | {:?} |",
         wall_clock_avg - baseline_avg,
         wall_clock_median - baseline_median
     )
